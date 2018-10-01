@@ -76,7 +76,7 @@
         rownames(tx2gene) <- tx2gene[["transcriptID"]]
     }
 
-    tximport(
+    txi <- tximport(
         files = files,
         type = type,
         txIn = txIn,
@@ -86,6 +86,24 @@
         ignoreTxVersion = ignoreTxVersion,
         importer = read_tsv
     )
+    assert_are_identical(
+        x = c("abundance", "counts", "length", "countsFromAbundance"),
+        y = names(txi)
+    )
+
+    # Ensure we're sanitizing gene IDs, when working with GENCODE files.
+    if (isTRUE(ignoreTxVersion)) {
+        rownames <- rownames(txi[["abundance"]])
+        assert_are_identical(rownames, rownames(txi[["counts"]]))
+        assert_are_identical(rownames, rownames(txi[["length"]]))
+        rownames <- stripTranscriptVersions(rownames)
+        assert_has_no_duplicates(rownames)
+        rownames(txi[["abundance"]]) <- rownames
+        rownames(txi[["counts"]]) <- rownames
+        rownames(txi[["length"]]) <- rownames
+    }
+
+    txi
 }
 
 
